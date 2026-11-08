@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Melhor Look Nostálgico | Confra Moto & Cia 2026</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background:
+                linear-gradient(transparent 94%, rgba(255,62,165,0.14) 94%) 0 0 / 100% 36px,
+                linear-gradient(90deg, transparent 94%, rgba(62,240,255,0.12) 94%) 0 0 / 36px 100%,
+                #0b0416;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: #FFC107; font-size: 2.2em; text-shadow: 3px 3px 6px rgba(0,0,0,0.4); margin-bottom: 8px; }
+        .header p { color: #fff; font-size: 1.1em; }
+        .premio {
+            background: rgba(255, 193, 7, 0.15);
+            border: 3px solid #FFC107;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            color: #FFC107;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; color: #fff; margin-bottom: 15px; flex-wrap: wrap; }
+        .tabelas { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn {
+            flex: 1; min-width: 150px; padding: 15px; font-size: 1.05em; font-weight: bold;
+            border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .tab-btn.ativo { background: linear-gradient(135deg, #FF6B35, #FFC107); color: white; }
+        .tab-btn.inativo { background: rgba(255,255,255,0.2); color: #fff; }
+        .tab-btn[hidden] { display: none; }
+        .section { background: #14062a; border: 1px solid #3b1466; border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); display: none; }
+        .section.ativo { display: block; }
+        .section h2 { color: #3ef0ff; margin-bottom: 20px; border-bottom: 3px solid #FF6B35; padding-bottom: 10px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        #video { width: 100%; border-radius: 10px; background: #000; margin-bottom: 10px; }
+        #photoPreview { width: 100%; border-radius: 10px; border: 2px solid #FFC107; margin-bottom: 15px; display: none; }
+        .label { color: #3ef0ff; font-weight: bold; margin-bottom: 10px; display: block; }
+        .btns { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        button { padding: 12px 20px; font-size: 1em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, #ff3ea5, #ffc857); color: #0b0416; color: white; flex: 1; }
+        .btn-secondary { background: #e0e0e0; color: #333; flex: 1; }
+        .btn-sair { background: #ff6b6b; color: white; padding: 8px 14px; }
+        #canvas { display: none; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; color: #3ef0ff; font-weight: bold; margin-bottom: 8px; }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #FFC107; border-radius: 8px; font-size: 1em; }
+        .lista { margin-top: 25px; }
+        .item { display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(0,61,122,0.05); border-radius: 10px; margin-bottom: 10px; }
+        .item img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; border: 2px solid #FFC107; }
+        .item .nome { flex: 1; font-size: 1.1em; font-weight: bold; color: #3ef0ff; }
+        .btn-remover { background: #ff6b6b; color: white; padding: 8px 12px; font-size: 0.9em; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: #14062a; border: 2px solid #3b1466; border-radius: 12px; overflow: hidden; }
+        .card img { width: 100%; height: 250px; object-fit: cover; }
+        .card-body { padding: 15px; }
+        .card-nome { font-size: 1.2em; font-weight: bold; color: #3ef0ff; text-align: center; margin-bottom: 12px; }
+        .criterio { margin-bottom: 12px; }
+        .criterio label { display: block; color: #cfc3e6; font-weight: bold; margin-bottom: 6px; font-size: 0.95em; }
+        .notas { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+        .nota { width: 36px; height: 36px; border: 2px solid #FFC107; border-radius: 50%; background: white; color: #B8860B; padding: 0; font-size: 0.95em; }
+        .nota.ativo { background: #FF6B35; border-color: #FF6B35; color: white; }
+        .total { background: linear-gradient(135deg, #3ef0ff, #FF6B35); color: white; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 10px; }
+        .aviso { background: #fff3cd; border: 2px solid #ffc107; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .aviso.mostrar { display: block; }
+        .ranking-item { display: flex; align-items: center; padding: 15px; margin-bottom: 12px; border-radius: 10px; color: white; }
+        .ranking-item.p1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
+        .ranking-item.p2 { background: linear-gradient(135deg, #B0B0B0, #808080); }
+        .ranking-item.p3 { background: linear-gradient(135deg, #CD7F32, #8B4513); }
+        .ranking-item.outro { background: #3ef0ff; }
+        .posicao { font-size: 1.6em; font-weight: bold; margin-right: 20px; min-width: 60px; }
+        .ranking-nome { flex: 1; font-size: 1.2em; font-weight: bold; }
+        .ranking-pts { font-size: 1.2em; font-weight: bold; background: rgba(0,0,0,0.2); padding: 8px 14px; border-radius: 6px; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal.mostrar { display: flex; }
+        .login-box { background: #14062a; border: 1px solid #3b1466; border-radius: 15px; padding: 35px; max-width: 400px; width: 90%; }
+        .login-box h2 { color: #3ef0ff; text-align: center; margin-bottom: 25px; }
+        @media (max-width: 768px) {
+            .grid2 { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.6em; }
+            .card-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎉 MELHOR LOOK NOSTÁLGICO</h1>
+        <p>Confra Moto &amp; Cia 2026</p>
+    </div>
+
+    <div class="premio">💰 1º R$ 1.000 · 2º R$ 600 · 3º R$ 300 💰</div>
+
+    <div class="topbar">
+        <span id="quemSou"></span>
+        <button class="btn-sair" id="btnSair" onclick="sair()" hidden>Sair</button>
+    </div>
+
+    <div class="tabelas" id="tabs" hidden>
+        <button class="tab-btn ativo" id="tab-cadastro" onclick="mudarAba('cadastro')">📸 CADASTRO</button>
+        <button class="tab-btn inativo" id="tab-votacao" onclick="mudarAba('votacao')">🏆 JULGAMENTO</button>
+        <button class="tab-btn inativo" id="tab-resultado" onclick="mudarAba('resultado')">📊 RESULTADO</button>
+    </div>
+
+    <!-- CADASTRO (fotógrafo) -->
+    <div id="cadastro" class="section ativo">
+        <h2>📸 Inscrição dos looks</h2>
+        <div class="grid2">
+            <div>
+                <span class="label">Foto do look</span>
+                <video id="video" autoplay playsinline></video>
+                <div class="btns">
+                    <button class="btn-primary" onclick="iniciarCamera()">🎥 Iniciar câmera</button>
+                    <button class="btn-secondary" onclick="tirarFoto()">📸 Tirar foto</button>
+                </div>
+                <canvas id="canvas"></canvas>
+            </div>
+            <div>
+                <span class="label">Foto capturada</span>
+                <img id="photoPreview" alt="Foto">
+                <div class="input-group">
+                    <label for="nomeParticipante">Nome do participante</label>
+                    <input type="text" id="nomeParticipante" placeholder="Digite o nome">
+                </div>
+                <button class="btn-primary" id="btnSalvar" onclick="salvarParticipante()">✅ Salvar inscrição</button>
+            </div>
+        </div>
+        <div class="lista" id="listaCadastro"></div>
+    </div>
+
+    <!-- JULGAMENTO (trinca) -->
+    <div id="votacao" class="section">
+        <h2>🏆 Julgamento</h2>
+        <div style="background:#0b0416;border:1px solid #ffc857;border-radius:10px;padding:15px;margin-bottom:20px;color:#fff;">
+            <strong style="color:#ffc857;">Critérios (nota de 0 a 5 em cada um):</strong>
+            <ul style="margin:10px 0 0 20px;line-height:1.6;">
+                <li><b>Fidelidade à década:</b> o look parece dos anos 70 a 2000?</li>
+                <li><b>Capricho na montagem:</b> peças escolhidas, acabamento e acessórios bem resolvidos.</li>
+                <li><b>Criatividade:</b> ideia própria, sem cara de look pronto.</li>
+                <li><b>Conjunto:</b> o look inteiro combina, da cabeça aos pés.</li>
+            </ul>
+        </div>
+        <div class="aviso" id="avisoVotacao">Nenhum look inscrito ainda.</div>
+        <div class="card-grid" id="cardsVotacao"></div>
+    </div>
+
+    <!-- RESULTADO (trinca) -->
+    <div id="resultado" class="section">
+        <h2>📊 Ranking</h2>
+        <p id="progressoJuri" style="margin-bottom: 15px; color: #cfc3e6;"></p>
+        <div id="rankingContainer"></div>
+    </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginModal" class="modal mostrar">
+    <div class="login-box">
+        <h2 id="tituloLogin">🔐 Entrar</h2>
+        <div class="input-group" id="grupoNome" hidden>
+            <label for="cadNome">Seu nome</label>
+            <select id="cadNome" style="width:100%;padding:12px;border:2px solid #FFC107;border-radius:8px;font-size:1em;">
+                <option value="">Selecione seu nome</option>
+                <option value="Cris">Cris</option>
+                <option value="Deizon">Deizon</option>
+                <option value="Nayara">Nayara</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label for="loginEmail">E-mail</label>
+            <input type="email" id="loginEmail" autocomplete="username">
+        </div>
+        <div class="input-group">
+            <label for="loginSenha">Senha</label>
+            <input type="password" id="loginSenha" autocomplete="current-password">
+        </div>
+        <button class="btn-primary" id="btnAcao" style="width:100%" onclick="acaoLogin()">ENTRAR</button>
+        <p style="text-align:center;margin-top:15px;">
+            <a href="#" id="linkModo" onclick="alternarModo(event)" style="color:#3ef0ff;">Primeira vez? Criar conta</a>
+        </p>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // COLE AQUI a configuração do seu projeto Firebase (ver SETUP.md)
+    const firebaseConfig = {
+        apiKey: "AIzaSyAVl-yNTA-nUgAD24gTaEFPoChuvAmvibU",
+        authDomain: "conframotoecia26.firebaseapp.com",
+        projectId: "conframotoecia26",
+        storageBucket: "conframotoecia26.firebasestorage.app",
+        messagingSenderId: "953140208853",
+        appId: "1:953140208853:web:0728967b89a297da37ee5c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const CRITERIOS = [
+        { key: "fidelidade", label: "🕰️ Fidelidade à década" },
+        { key: "capricho", label: "🧵 Capricho na montagem" },
+        { key: "criatividade", label: "✨ Criatividade" },
+        { key: "conjunto", label: "👔 Conjunto" }
+    ];
+    const JURADOS_ESPERADOS = 3;
+
+    let usuario = null;      // { uid, nome, papel }
+    let participantes = [];  // { id, nome, foto }
+    let votos = [];          // { juradoUid, participanteId, scores }
+    let fotoCapturada = null;
+    let videoStream = null;
+    let unsubs = [];
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    // ---------- LOGIN ----------
+    window.fazerLogin = async () => {
+        const email = $("loginEmail").value.trim();
+        const senha = $("loginSenha").value;
+        if (!email || !senha) { alert("Preencha e-mail e senha."); return; }
+        try {
+            await signInWithEmailAndPassword(auth, email, senha);
+            $("loginSenha").value = "";
+        } catch (e) {
+            alert("E-mail ou senha incorretos.");
+        }
+    };
+
+    let modoCriar = false;
+    window.alternarModo = (e) => {
+        e.preventDefault();
+        modoCriar = !modoCriar;
+        $("tituloLogin").textContent = modoCriar ? "🆕 Criar conta" : "🔐 Entrar";
+        $("grupoNome").hidden = !modoCriar;
+        $("btnAcao").textContent = modoCriar ? "CRIAR CONTA" : "ENTRAR";
+        $("linkModo").textContent = modoCriar ? "Já tenho conta: entrar" : "Primeira vez? Criar conta";
+    };
+
+    window.acaoLogin = async () => {
+        if (modoCriar) return criarConta();
+        return fazerLogin();
+    };
+
+    // Cria a conta e o perfil de jurado. As regras do Firestore só aceitam
+    // os três nomes da trinca com papel "jurado".
+    async function criarConta() {
+        const nome = $("cadNome").value;
+        const email = $("loginEmail").value.trim();
+        const senha = $("loginSenha").value;
+        if (!nome) { alert("Selecione seu nome."); return; }
+        if (!email || senha.length < 6) { alert("Informe um e-mail e uma senha com pelo menos 6 caracteres."); return; }
+        try {
+            const cred = await createUserWithEmailAndPassword(auth, email, senha);
+            await setDoc(doc(db, "usuarios", cred.user.uid), { nome, papel: "jurado", email });
+            $("loginSenha").value = "";
+        } catch (e) {
+            alert("Não foi possível criar a conta: " + e.message);
+        }
+    }
+
+    window.sair = async () => {
+        await signOut(auth);
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        unsubs.forEach(u => u());
+        unsubs = [];
+        if (!user) {
+            usuario = null;
+            $("loginModal").classList.add("mostrar");
+            $("tabs").hidden = true;
+            $("btnSair").hidden = true;
+            $("quemSou").textContent = "";
+            return;
+        }
+        const snap = await getDoc(doc(db, "usuarios", user.uid));
+        if (!snap.exists()) {
+            alert("Esta conta não tem permissão para acessar a página. Fale com a organização.");
+            await signOut(auth);
+            return;
+        }
+        usuario = { uid: user.uid, ...snap.data() };
+        iniciarApp();
+    });
+
+    // ---------- APP ----------
+    function iniciarApp() {
+        $("loginModal").classList.remove("mostrar");
+        $("btnSair").hidden = false;
+        $("tabs").hidden = false;
+        $("quemSou").textContent = `Logado como ${usuario.nome}`;
+
+        const ehFotografo = usuario.papel === "fotografo";
+        const ehJurado = usuario.papel === "jurado";
+        $("tab-cadastro").hidden = !ehFotografo;
+        $("tab-votacao").hidden = !ehJurado;
+        $("tab-resultado").hidden = !ehJurado;
+        mudarAba(ehFotografo ? "cadastro" : "votacao");
+
+        unsubs.push(onSnapshot(query(collection(db, "participantes"), orderBy("criadoEm")), (snap) => {
+            participantes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderCadastro();
+            renderJulgamento();
+            renderResultado();
+        }, (err) => console.error(err)));
+
+        if (ehJurado) {
+            unsubs.push(onSnapshot(collection(db, "votos"), (snap) => {
+                votos = snap.docs.map(d => d.data());
+                renderJulgamento();
+                renderResultado();
+            }, (err) => console.error(err)));
+        }
+    }
+
+    window.mudarAba = (aba) => {
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("ativo"));
+        $(aba).classList.add("ativo");
+        ["cadastro", "votacao", "resultado"].forEach(a => {
+            const b = $("tab-" + a);
+            b.classList.toggle("ativo", a === aba);
+            b.classList.toggle("inativo", a !== aba);
+        });
+    };
+
+    // ---------- CADASTRO (fotógrafo) ----------
+    window.iniciarCamera = async () => {
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            $("video").srcObject = videoStream;
+        } catch (err) {
+            alert("Erro ao acessar a câmera: " + err.message);
+        }
+    };
+
+    window.tirarFoto = () => {
+        const video = $("video");
+        if (!video.videoWidth) { alert("Inicie a câmera primeiro."); return; }
+        // reduz a foto para caber no Firestore (limite de 1 MB por documento)
+        const escala = Math.min(1, 900 / video.videoWidth);
+        const canvas = $("canvas");
+        canvas.width = Math.round(video.videoWidth * escala);
+        canvas.height = Math.round(video.videoHeight * escala);
+        canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+        fotoCapturada = canvas.toDataURL("image/jpeg", 0.7);
+        $("photoPreview").src = fotoCapturada;
+        $("photoPreview").style.display = "block";
+    };
+
+    window.salvarParticipante = async () => {
+        const nome = $("nomeParticipante").value.trim();
+        if (!nome) { alert("Digite o nome do participante."); return; }
+        if (!fotoCapturada) { alert("Tire a foto primeiro."); return; }
+        $("btnSalvar").disabled = true;
+        try {
+            await addDoc(collection(db, "participantes"), {
+                nome,
+                foto: fotoCapturada,
+                criadoPor: usuario.uid,
+                criadoEm: serverTimestamp()
+            });
+            $("nomeParticipante").value = "";
+            $("photoPreview").style.display = "none";
+            fotoCapturada = null;
+        } catch (e) {
+            alert("Não foi possível salvar: " + e.message);
+        } finally {
+            $("btnSalvar").disabled = false;
+        }
+    };
+
+    window.removerParticipante = async (id) => {
+        if (!confirm("Remover esta inscrição?")) return;
+        await deleteDoc(doc(db, "participantes", id));
+    };
+
+    function renderCadastro() {
+        if (usuario?.papel !== "fotografo") return;
+        if (!participantes.length) { $("listaCadastro").innerHTML = ""; return; }
+        $("listaCadastro").innerHTML = `<h3 style="color:#3ef0ff;margin-bottom:15px;">Inscritos (${participantes.length})</h3>` +
+            participantes.map(p => `
+                <div class="item">
+                    <img src="${p.foto}" alt="${esc(p.nome)}">
+                    <div class="nome">${esc(p.nome)}</div>
+                    <button class="btn-remover" onclick="removerParticipante('${p.id}')">✕</button>
+                </div>`).join("");
+    }
+
+    // ---------- JULGAMENTO (trinca) ----------
+    function meusVotos() {
+        return votos.filter(v => v.juradoUid === usuario?.uid);
+    }
+
+    function renderJulgamento() {
+        if (usuario?.papel !== "jurado") return;
+        const lista = participantes.filter(p => p.nome.trim().toLowerCase() !== usuario.nome.trim().toLowerCase());
+        $("avisoVotacao").classList.toggle("mostrar", participantes.length === 0);
+        const meus = meusVotos();
+
+        $("cardsVotacao").innerHTML = lista.map(p => {
+            const voto = meus.find(v => v.participanteId === p.id);
+            const scores = voto ? voto.scores : {};
+            const total = CRITERIOS.reduce((s, c) => s + (scores[c.key] || 0), 0);
+            return `
+                <div class="card">
+                    <img src="${p.foto}" alt="${esc(p.nome)}">
+                    <div class="card-body">
+                        <div class="card-nome">${esc(p.nome)}</div>
+                        ${CRITERIOS.map(c => `
+                            <div class="criterio">
+                                <label>${c.label}</label>
+                                <div class="notas">
+                                    ${[0, 1, 2, 3, 4, 5].map(n => `
+                                        <button class="nota ${scores[c.key] === n ? "ativo" : ""}"
+                                            onclick="votar('${p.id}', '${c.key}', ${n})">${n}</button>`).join("")}
+                                </div>
+                            </div>`).join("")}
+                        <div class="total">Sua nota: ${total} de 20</div>
+                    </div>
+                </div>`;
+        }).join("");
+    }
+
+    window.votar = async (participanteId, criterio, nota) => {
+        const atual = meusVotos().find(v => v.participanteId === participanteId);
+        const scores = { fidelidade: 0, capricho: 0, criatividade: 0, conjunto: 0, ...(atual?.scores || {}) };
+        scores[criterio] = nota;
+        await setDoc(doc(db, "votos", `${usuario.uid}_${participanteId}`), {
+            juradoUid: usuario.uid,
+            participanteId,
+            scores,
+            atualizadoEm: serverTimestamp()
+        });
+    };
+
+    // ---------- RESULTADO (trinca) ----------
+    function renderResultado() {
+        if (usuario?.papel !== "jurado") return;
+        const juradosQueVotaram = new Set(votos.map(v => v.juradoUid)).size;
+        $("progressoJuri").textContent = `Jurados que já votaram: ${juradosQueVotaram} de ${JURADOS_ESPERADOS}. O ranking considera todos os votos recebidos até agora.`;
+
+        const ranking = participantes.map(p => {
+            const doLook = votos.filter(v => v.participanteId === p.id);
+            const porCriterio = {};
+            CRITERIOS.forEach(c => {
+                porCriterio[c.key] = doLook.reduce((s, v) => s + (v.scores?.[c.key] || 0), 0);
+            });
+            const total = CRITERIOS.reduce((s, c) => s + porCriterio[c.key], 0);
+            return { nome: p.nome, total, porCriterio };
+        }).sort((a, b) => b.total - a.total);
+
+        if (!ranking.length) { $("rankingContainer").innerHTML = "<p>Nenhum look inscrito ainda.</p>"; return; }
+
+        const classes = ["p1", "p2", "p3"];
+        const medalhas = ["🥇 1º", "🥈 2º", "🥉 3º"];
+        $("rankingContainer").innerHTML = ranking.map((r, i) => `
+            <div class="ranking-item ${classes[i] || "outro"}">
+                <div class="posicao">${medalhas[i] || (i + 1) + "º"}</div>
+                <div class="ranking-nome">
+                    ${esc(r.nome)}
+                    <div style="font-size:0.8em;font-weight:normal;opacity:0.9;margin-top:4px;">
+                        ${CRITERIOS.map(c => `${c.label.replace(/^\S+\s/, "")}: ${r.porCriterio[c.key]}`).join(" · ")}
+                    </div>
+                </div>
+                <div class="ranking-pts">${r.total} pts</div>
+            </div>`).join("");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function ehFotografo() {
+      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && perfil().papel == 'fotografo';
+    }
+
+    function ehJurado() {
+      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && perfil().papel == 'jurado';
+    }
+
+    // Perfil do usuário. Cada conta só lê o próprio perfil.
+    // Criação pela página: só os três jurados, sempre com papel "jurado".
+    // Fotógrafo (Fernando) é criado direto no console do Firebase.
+    match /usuarios/{uid} {
+      allow read: if logado() && request.auth.uid == uid;
+      allow create: if logado()
+        && request.auth.uid == uid
+        && request.resource.data.papel == 'jurado'
+        && request.resource.data.nome in ['Cris', 'Deizon', 'Nayara']
+        && request.resource.data.keys().hasOnly(['nome', 'papel', 'email']);
+      allow update, delete: if false;
+    }
+
+    // Inscrições dos looks: fotógrafo cria/remove, jurados leem.
+    match /participantes/{id} {
+      allow read: if ehFotografo() || ehJurado();
+      allow create: if ehFotografo()
+        && request.resource.data.keys().hasOnly(['nome', 'foto', 'criadoPor', 'criadoEm'])
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.foto is string
+        && request.resource.data.foto.size() < 900000
+        && request.resource.data.criadoPor == request.auth.uid;
+      allow update: if false;
+      allow delete: if ehFotografo();
+    }
+
+    // Notas: cada jurado só grava as próprias notas, de 0 a 5 por critério.
+    match /votos/{id} {
+      allow read: if ehJurado();
+      allow create, update: if ehJurado()
+        && request.resource.data.juradoUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['juradoUid', 'participanteId', 'scores', 'atualizadoEm'])
+        && request.resource.data.scores.fidelidade is int
+        && request.resource.data.scores.fidelidade >= 0 && request.resource.data.scores.fidelidade <= 5
+        && request.resource.data.scores.capricho is int
+        && request.resource.data.scores.capricho >= 0 && request.resource.data.scores.capricho <= 5
+        && request.resource.data.scores.criatividade is int
+        && request.resource.data.scores.criatividade >= 0 && request.resource.data.scores.criatividade <= 5
+        && request.resource.data.scores.conjunto is int
+        && request.resource.data.scores.conjunto >= 0 && request.resource.data.scores.conjunto <= 5;
+      allow delete: if false;
+    }
+  }
+}
