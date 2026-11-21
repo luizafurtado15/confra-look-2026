@@ -16,20 +16,30 @@ service cloud.firestore {
         && perfil().papel == 'fotografo';
     }
 
+    function juri() {
+      return ['Gabriela Maria', 'Luciana Félix'];
+    }
+
+    // Só conta como jurado quem está na lista atual do júri.
     function ehJurado() {
       return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && perfil().papel == 'jurado';
+        && perfil().papel == 'jurado'
+        && perfil().nome in juri();
+    }
+
+    function notaValida(n) {
+      return n is int && n >= -1 && n <= 5;
     }
 
     // Perfil do usuário. Cada conta só lê o próprio perfil.
-    // Criação pela página: só os três jurados, sempre com papel "jurado".
+    // Criação pela página: só os nomes do júri, sempre com papel "jurado".
     // Fotógrafo (Fernando) é criado direto no console do Firebase.
     match /usuarios/{uid} {
       allow read: if logado() && request.auth.uid == uid;
       allow create: if logado()
         && request.auth.uid == uid
         && request.resource.data.papel == 'jurado'
-        && request.resource.data.nome in ['Cris', 'Deizon', 'Nayara']
+        && request.resource.data.nome in juri()
         && request.resource.data.keys().hasOnly(['nome', 'papel', 'email']);
       allow update, delete: if false;
     }
@@ -48,20 +58,20 @@ service cloud.firestore {
       allow delete: if ehFotografo();
     }
 
-    // Notas: cada jurado só grava as próprias notas, de 0 a 5 por critério.
+    // Notas: cada jurado só grava as próprias notas, de 0 a 5 por critério (-1 = ainda sem nota).
     match /votos/{id} {
       allow read: if ehJurado();
       allow create, update: if ehJurado()
+        && id == request.auth.uid + '_' + request.resource.data.participanteId
         && request.resource.data.juradoUid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['juradoUid', 'participanteId', 'scores', 'atualizadoEm'])
-        && request.resource.data.scores.fidelidade is int
-        && request.resource.data.scores.fidelidade >= 0 && request.resource.data.scores.fidelidade <= 5
-        && request.resource.data.scores.capricho is int
-        && request.resource.data.scores.capricho >= 0 && request.resource.data.scores.capricho <= 5
-        && request.resource.data.scores.criatividade is int
-        && request.resource.data.scores.criatividade >= 0 && request.resource.data.scores.criatividade <= 5
-        && request.resource.data.scores.conjunto is int
-        && request.resource.data.scores.conjunto >= 0 && request.resource.data.scores.conjunto <= 5;
+        && request.resource.data.juradoNome == perfil().nome
+        && exists(/databases/$(database)/documents/participantes/$(request.resource.data.participanteId))
+        && request.resource.data.keys().hasOnly(['juradoUid', 'juradoNome', 'participanteId', 'scores', 'atualizadoEm'])
+        && request.resource.data.scores.keys().hasOnly(['fidelidade', 'capricho', 'criatividade', 'conjunto'])
+        && notaValida(request.resource.data.scores.fidelidade)
+        && notaValida(request.resource.data.scores.capricho)
+        && notaValida(request.resource.data.scores.criatividade)
+        && notaValida(request.resource.data.scores.conjunto);
       allow delete: if false;
     }
   }

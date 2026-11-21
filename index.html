@@ -74,6 +74,10 @@
         .total { background: linear-gradient(135deg, #3ef0ff, #FF6B35); color: white; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 10px; }
         .aviso { background: #fff3cd; border: 2px solid #ffc107; color: #856404; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
         .aviso.mostrar { display: block; }
+        .pendente { background: #fff3cd; color: #856404; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 8px; font-size: 0.9em; }
+        .completo { background: #d4edda; color: #155724; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 8px; font-size: 0.9em; }
+        .tag-empate { background: #FF3B6B; color: #fff; font-size: 0.65em; padding: 3px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+        .aviso-empate { background: #FF3B6B; color: #fff; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-top: 10px; }
         .ranking-item { display: flex; align-items: center; padding: 15px; margin-bottom: 12px; border-radius: 10px; color: white; }
         .ranking-item.p1 { background: linear-gradient(135deg, #FFD700, #FFA500); }
         .ranking-item.p2 { background: linear-gradient(135deg, #B0B0B0, #808080); }
@@ -139,7 +143,7 @@
         <div class="lista" id="listaCadastro"></div>
     </div>
 
-    <!-- JULGAMENTO (trinca) -->
+    <!-- JULGAMENTO (júri) -->
     <div id="votacao" class="section">
         <h2>🏆 Julgamento</h2>
         <div style="background:#0b0416;border:1px solid #ffc857;border-radius:10px;padding:15px;margin-bottom:20px;color:#fff;">
@@ -155,7 +159,7 @@
         <div class="card-grid" id="cardsVotacao"></div>
     </div>
 
-    <!-- RESULTADO (trinca) -->
+    <!-- RESULTADO (júri) -->
     <div id="resultado" class="section">
         <h2>📊 Ranking</h2>
         <p id="progressoJuri" style="margin-bottom: 15px; color: #cfc3e6;"></p>
@@ -171,9 +175,8 @@
             <label for="cadNome">Seu nome</label>
             <select id="cadNome" style="width:100%;padding:12px;border:2px solid #FFC107;border-radius:8px;font-size:1em;">
                 <option value="">Selecione seu nome</option>
-                <option value="Cris">Cris</option>
-                <option value="Deizon">Deizon</option>
-                <option value="Nayara">Nayara</option>
+                <option value="Gabriela Maria">Gabriela Maria</option>
+                <option value="Luciana Félix">Luciana Félix</option>
             </select>
         </div>
         <div class="input-group">
@@ -216,7 +219,9 @@
         { key: "criatividade", label: "✨ Criatividade" },
         { key: "conjunto", label: "👔 Conjunto" }
     ];
-    const JURADOS_ESPERADOS = 3;
+    const JURADOS = ["Gabriela Maria", "Luciana Félix"];
+    const JURADOS_ESPERADOS = JURADOS.length;
+    const NAO_VOTADO = -1; // critério ainda sem nota
 
     let usuario = null;      // { uid, nome, papel }
     let participantes = [];  // { id, nome, foto }
@@ -257,7 +262,7 @@
     };
 
     // Cria a conta e o perfil de jurado. As regras do Firestore só aceitam
-    // os três nomes da trinca com papel "jurado".
+    // os nomes do júri (lista JURADOS) com papel "jurado".
     async function criarConta() {
         const nome = $("cadNome").value;
         const email = $("loginEmail").value.trim();
@@ -321,7 +326,8 @@
 
         if (ehJurado) {
             unsubs.push(onSnapshot(collection(db, "votos"), (snap) => {
-                votos = snap.docs.map(d => d.data());
+                // só conta votos de quem está no júri atual
+                votos = snap.docs.map(d => d.data()).filter(v => JURADOS.includes(v.juradoNome));
                 renderJulgamento();
                 renderResultado();
             }, (err) => console.error(err)));
@@ -401,7 +407,7 @@
                 </div>`).join("");
     }
 
-    // ---------- JULGAMENTO (trinca) ----------
+    // ---------- JULGAMENTO (júri) ----------
     function meusVotos() {
         return votos.filter(v => v.juradoUid === usuario?.uid);
     }
@@ -415,7 +421,9 @@
         $("cardsVotacao").innerHTML = lista.map(p => {
             const voto = meus.find(v => v.participanteId === p.id);
             const scores = voto ? voto.scores : {};
-            const total = CRITERIOS.reduce((s, c) => s + (scores[c.key] || 0), 0);
+            const dados = CRITERIOS.filter(c => (scores[c.key] ?? NAO_VOTADO) >= 0);
+            const total = dados.reduce((s, c) => s + scores[c.key], 0);
+            const faltam = CRITERIOS.length - dados.length;
             return `
                 <div class="card">
                     <img src="${p.foto}" alt="${esc(p.nome)}">
@@ -431,6 +439,7 @@
                                 </div>
                             </div>`).join("")}
                         <div class="total">Sua nota: ${total} de 20</div>
+                        ${faltam ? `<div class="pendente">⚠️ Falta${faltam > 1 ? "m" : ""} ${faltam} critério${faltam > 1 ? "s" : ""} neste look</div>` : `<div class="completo">✅ Voto completo</div>`}
                     </div>
                 </div>`;
         }).join("");
@@ -438,47 +447,73 @@
 
     window.votar = async (participanteId, criterio, nota) => {
         const atual = meusVotos().find(v => v.participanteId === participanteId);
-        const scores = { fidelidade: 0, capricho: 0, criatividade: 0, conjunto: 0, ...(atual?.scores || {}) };
+        const scores = { fidelidade: NAO_VOTADO, capricho: NAO_VOTADO, criatividade: NAO_VOTADO, conjunto: NAO_VOTADO, ...(atual?.scores || {}) };
         scores[criterio] = nota;
         await setDoc(doc(db, "votos", `${usuario.uid}_${participanteId}`), {
             juradoUid: usuario.uid,
+            juradoNome: usuario.nome,
             participanteId,
             scores,
             atualizadoEm: serverTimestamp()
         });
     };
 
-    // ---------- RESULTADO (trinca) ----------
+    // ---------- RESULTADO (júri) ----------
     function renderResultado() {
         if (usuario?.papel !== "jurado") return;
-        const juradosQueVotaram = new Set(votos.map(v => v.juradoUid)).size;
-        $("progressoJuri").textContent = `Jurados que já votaram: ${juradosQueVotaram} de ${JURADOS_ESPERADOS}. O ranking considera todos os votos recebidos até agora.`;
+        if (!participantes.length) { $("progressoJuri").textContent = ""; $("rankingContainer").innerHTML = "<p>Nenhum look inscrito ainda.</p>"; return; }
+
+        const completo = (v) => v && CRITERIOS.every(c => (v.scores?.[c.key] ?? NAO_VOTADO) >= 0);
+        // quem deve votar em cada look: todos os jurados, menos o próprio dono do look
+        const devemVotar = (p) => JURADOS.filter(j => j.trim().toLowerCase() !== p.nome.trim().toLowerCase());
 
         const ranking = participantes.map(p => {
             const doLook = votos.filter(v => v.participanteId === p.id);
+            // média de cada critério entre os jurados que deram nota nele
             const porCriterio = {};
             CRITERIOS.forEach(c => {
-                porCriterio[c.key] = doLook.reduce((s, v) => s + (v.scores?.[c.key] || 0), 0);
+                const notas = doLook.map(v => v.scores?.[c.key] ?? NAO_VOTADO).filter(n => n >= 0);
+                porCriterio[c.key] = notas.length ? notas.reduce((s, n) => s + n, 0) / notas.length : 0;
             });
-            const total = CRITERIOS.reduce((s, c) => s + porCriterio[c.key], 0);
-            return { nome: p.nome, total, porCriterio };
-        }).sort((a, b) => b.total - a.total);
+            const media = CRITERIOS.reduce((s, c) => s + porCriterio[c.key], 0);
+            const esperados = devemVotar(p);
+            const completos = esperados.filter(j => completo(doLook.find(v => v.juradoNome === j))).length;
+            return { nome: p.nome, media: Math.round(media * 100) / 100, porCriterio, completos, esperados: esperados.length };
+        }).sort((a, b) => b.media - a.media);
 
-        if (!ranking.length) { $("rankingContainer").innerHTML = "<p>Nenhum look inscrito ainda.</p>"; return; }
+        const pendentes = ranking.filter(r => r.completos < r.esperados);
+        const final = pendentes.length === 0;
+        const juradosOk = JURADOS.filter(j => participantes.every(p => {
+            if (!devemVotar(p).includes(j)) return true;
+            return completo(votos.find(v => v.participanteId === p.id && v.juradoNome === j));
+        }));
+        const faltando = JURADOS.filter(j => !juradosOk.includes(j));
+        $("progressoJuri").innerHTML = final
+            ? `<b style="color:#7CFF8A">✅ RESULTADO FINAL</b>: todos os jurados votaram em todos os looks.`
+            : `<b style="color:#FFC107">⏳ Votação em andamento</b>: ${juradosOk.length} de ${JURADOS_ESPERADOS} jurados concluíram. Falta: ${faltando.map(esc).join(", ")}. O ranking abaixo ainda pode mudar.`;
 
+        const fmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         const classes = ["p1", "p2", "p3"];
-        const medalhas = ["🥇 1º", "🥈 2º", "🥉 3º"];
-        $("rankingContainer").innerHTML = ranking.map((r, i) => `
-            <div class="ranking-item ${classes[i] || "outro"}">
-                <div class="posicao">${medalhas[i] || (i + 1) + "º"}</div>
+        let pos = 0;
+        $("rankingContainer").innerHTML = ranking.map((r, i) => {
+            if (i === 0 || r.media !== ranking[i - 1].media) pos = i;
+            const empate = ranking.some((o, k) => k !== i && o.media === r.media);
+            const medalha = ["🥇 1º", "🥈 2º", "🥉 3º"][pos] || (pos + 1) + "º";
+            return `
+            <div class="ranking-item ${classes[pos] || "outro"}">
+                <div class="posicao">${medalha}</div>
                 <div class="ranking-nome">
-                    ${esc(r.nome)}
+                    ${esc(r.nome)} ${empate ? `<span class="tag-empate">EMPATE</span>` : ""}
                     <div style="font-size:0.8em;font-weight:normal;opacity:0.9;margin-top:4px;">
-                        ${CRITERIOS.map(c => `${c.label.replace(/^\S+\s/, "")}: ${r.porCriterio[c.key]}`).join(" · ")}
+                        ${CRITERIOS.map(c => `${c.label.replace(/^\S+\s/, "")}: ${fmt(r.porCriterio[c.key])}`).join(" · ")}
                     </div>
+                    <div style="font-size:0.75em;font-weight:normal;opacity:0.9;margin-top:2px;">Votos completos: ${r.completos} de ${r.esperados} jurados</div>
                 </div>
-                <div class="ranking-pts">${r.total} pts</div>
-            </div>`).join("");
+                <div class="ranking-pts">${fmt(r.media)} pts</div>
+            </div>`;
+        }).join("") + (ranking.some((r, i) => ranking.some((o, k) => k !== i && o.media === r.media))
+            ? `<p class="aviso-empate">⚖️ Há empate: a organização decide o desempate.</p>` : "")
+          + `<p style="margin-top:10px;font-size:0.85em;color:#cfc3e6;">Pontuação = soma das médias dos jurados em cada critério (máximo 20).</p>`;
     }
 </script>
 </body>

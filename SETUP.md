@@ -23,10 +23,11 @@ A página usa Firebase (plano gratuito) para login, fotos e notas compartilhadas
 3. **Firestore Database** → **Iniciar coleção** → ID `usuarios` → ID do documento = o UID copiado.
 4. Campos: `nome` (string) = `Fernando`, `papel` (string) = `fotografo`.
 
-## 6. Como a trinca entra
+## 6. Como o júri entra
 - Cada uma acessa a página e clica em **Primeira vez? Criar conta**.
-- Seleciona o próprio nome (Cris, Deizon ou Nayara), informa e-mail e senha (mínimo 6 caracteres).
-- As regras só aceitam esses três nomes, com papel de jurado. Qualquer outro nome é recusado pelo servidor.
+- Seleciona o próprio nome (Gabriela Maria ou Luciana Félix), informa e-mail e senha (mínimo 6 caracteres).
+- As regras só aceitam esses nomes, com papel de jurado. Qualquer outro nome é recusado pelo servidor.
+- Para trocar o júri: altere a lista `JURADOS` em `index.html` e a função `juri()` em `firestore.rules` (e publique as regras de novo no Firebase).
 
 ## 7. Publicar no GitHub Pages
 - Só depois de configurar: o `index.html` com as chaves e as regras publicadas.
