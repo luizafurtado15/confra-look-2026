@@ -25,9 +25,8 @@ A página usa Firebase (plano gratuito) para login, fotos e notas compartilhadas
 
 ## 6. Como o júri entra
 - Cada uma acessa a página e clica em **Primeira vez? Criar conta**.
-- Seleciona o próprio nome (Gabriela Maria ou Luciana Félix), informa e-mail e senha (mínimo 6 caracteres).
-- As regras só aceitam esses nomes, com papel de jurado. Qualquer outro nome é recusado pelo servidor.
-- Para trocar o júri: altere a lista `JURADOS` em `index.html` e a função `juri()` em `firestore.rules` (e publique as regras de novo no Firebase).
+- Digita o próprio nome, informa e-mail e senha (mínimo 6 caracteres).
+- Acesso aberto: qualquer pessoa com conta cadastra looks, vota e vê o ranking. Quem dá pelo menos uma nota passa a contar como jurado no ranking.
 
 ## 7. Publicar no GitHub Pages
 - Só depois de configurar: o `index.html` com as chaves e as regras publicadas.

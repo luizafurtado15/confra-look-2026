@@ -173,11 +173,7 @@
         <h2 id="tituloLogin">🔐 Entrar</h2>
         <div class="input-group" id="grupoNome" hidden>
             <label for="cadNome">Seu nome</label>
-            <select id="cadNome" style="width:100%;padding:12px;border:2px solid #FFC107;border-radius:8px;font-size:1em;">
-                <option value="">Selecione seu nome</option>
-                <option value="Gabriela Maria">Gabriela Maria</option>
-                <option value="Luciana Félix">Luciana Félix</option>
-            </select>
+            <input type="text" id="cadNome" maxlength="40" placeholder="Digite seu nome" style="width:100%;padding:12px;border:2px solid #FFC107;border-radius:8px;font-size:1em;">
         </div>
         <div class="input-group">
             <label for="loginEmail">E-mail</label>
@@ -219,8 +215,7 @@
         { key: "criatividade", label: "✨ Criatividade" },
         { key: "conjunto", label: "👔 Conjunto" }
     ];
-    const JURADOS = ["Gabriela Maria", "Luciana Félix"];
-    const JURADOS_ESPERADOS = JURADOS.length;
+    
     const NAO_VOTADO = -1; // critério ainda sem nota
 
     let usuario = null;      // { uid, nome, papel }
@@ -262,12 +257,12 @@
     };
 
     // Cria a conta e o perfil de jurado. As regras do Firestore só aceitam
-    // os nomes do júri (lista JURADOS) com papel "jurado".
+    // qualquer nome, com papel "jurado".
     async function criarConta() {
-        const nome = $("cadNome").value;
+        const nome = $("cadNome").value.trim().replace(/\s+/g, " ");
         const email = $("loginEmail").value.trim();
         const senha = $("loginSenha").value;
-        if (!nome) { alert("Selecione seu nome."); return; }
+        if (!nome) { alert("Digite seu nome."); return; }
         if (!email || senha.length < 6) { alert("Informe um e-mail e uma senha com pelo menos 6 caracteres."); return; }
         try {
             const cred = await createUserWithEmailAndPassword(auth, email, senha);
@@ -312,9 +307,9 @@
 
         const ehFotografo = usuario.papel === "fotografo";
         const ehJurado = usuario.papel === "jurado";
-        $("tab-cadastro").hidden = !ehFotografo;
-        $("tab-votacao").hidden = !ehJurado;
-        $("tab-resultado").hidden = !ehJurado;
+        $("tab-cadastro").hidden = false;
+        $("tab-votacao").hidden = false;
+        $("tab-resultado").hidden = false;
         mudarAba(ehFotografo ? "cadastro" : "votacao");
 
         unsubs.push(onSnapshot(query(collection(db, "participantes"), orderBy("criadoEm")), (snap) => {
@@ -324,10 +319,9 @@
             renderResultado();
         }, (err) => console.error(err)));
 
-        if (ehJurado) {
+        {
             unsubs.push(onSnapshot(collection(db, "votos"), (snap) => {
-                // só conta votos de quem está no júri atual
-                votos = snap.docs.map(d => d.data()).filter(v => JURADOS.includes(v.juradoNome));
+                votos = snap.docs.map(d => d.data());
                 renderJulgamento();
                 renderResultado();
             }, (err) => console.error(err)));
@@ -396,7 +390,7 @@
     };
 
     function renderCadastro() {
-        if (usuario?.papel !== "fotografo") return;
+        if (!usuario) return;
         if (!participantes.length) { $("listaCadastro").innerHTML = ""; return; }
         $("listaCadastro").innerHTML = `<h3 style="color:#3ef0ff;margin-bottom:15px;">Inscritos (${participantes.length})</h3>` +
             participantes.map(p => `
@@ -413,7 +407,7 @@
     }
 
     function renderJulgamento() {
-        if (usuario?.papel !== "jurado") return;
+        if (!usuario) return;
         const lista = participantes.filter(p => p.nome.trim().toLowerCase() !== usuario.nome.trim().toLowerCase());
         $("avisoVotacao").classList.toggle("mostrar", participantes.length === 0);
         const meus = meusVotos();
@@ -460,12 +454,18 @@
 
     // ---------- RESULTADO (júri) ----------
     function renderResultado() {
-        if (usuario?.papel !== "jurado") return;
+        if (!usuario) return;
         if (!participantes.length) { $("progressoJuri").textContent = ""; $("rankingContainer").innerHTML = "<p>Nenhum look inscrito ainda.</p>"; return; }
 
         const completo = (v) => v && CRITERIOS.every(c => (v.scores?.[c.key] ?? NAO_VOTADO) >= 0);
+        // jurados = todo mundo que já deu pelo menos uma nota
+        const nomes = {};
+        votos.forEach(v => { nomes[v.juradoUid] = v.juradoNome || "Jurado"; });
+        const JURADOS = Object.keys(nomes);
+        const JURADOS_ESPERADOS = JURADOS.length;
+        const norm = (t) => String(t).trim().toLowerCase();
         // quem deve votar em cada look: todos os jurados, menos o próprio dono do look
-        const devemVotar = (p) => JURADOS.filter(j => j.trim().toLowerCase() !== p.nome.trim().toLowerCase());
+        const devemVotar = (p) => JURADOS.filter(u => norm(nomes[u]) !== norm(p.nome));
 
         const ranking = participantes.map(p => {
             const doLook = votos.filter(v => v.participanteId === p.id);
@@ -477,20 +477,21 @@
             });
             const media = CRITERIOS.reduce((s, c) => s + porCriterio[c.key], 0);
             const esperados = devemVotar(p);
-            const completos = esperados.filter(j => completo(doLook.find(v => v.juradoNome === j))).length;
+            const completos = esperados.filter(u => completo(doLook.find(v => v.juradoUid === u))).length;
             return { nome: p.nome, media: Math.round(media * 100) / 100, porCriterio, completos, esperados: esperados.length };
         }).sort((a, b) => b.media - a.media);
 
         const pendentes = ranking.filter(r => r.completos < r.esperados);
-        const final = pendentes.length === 0;
+        const final = JURADOS_ESPERADOS > 0 && pendentes.length === 0;
         const juradosOk = JURADOS.filter(j => participantes.every(p => {
             if (!devemVotar(p).includes(j)) return true;
-            return completo(votos.find(v => v.participanteId === p.id && v.juradoNome === j));
+            return completo(votos.find(v => v.participanteId === p.id && v.juradoUid === j));
         }));
-        const faltando = JURADOS.filter(j => !juradosOk.includes(j));
+        const faltando = JURADOS.filter(j => !juradosOk.includes(j)).map(u => nomes[u]);
         $("progressoJuri").innerHTML = final
-            ? `<b style="color:#7CFF8A">✅ RESULTADO FINAL</b>: todos os jurados votaram em todos os looks.`
-            : `<b style="color:#FFC107">⏳ Votação em andamento</b>: ${juradosOk.length} de ${JURADOS_ESPERADOS} jurados concluíram. Falta: ${faltando.map(esc).join(", ")}. O ranking abaixo ainda pode mudar.`;
+            ? `<b style="color:#7CFF8A">✅ Todos que votaram (${JURADOS_ESPERADOS}: ${JURADOS.map(u => esc(nomes[u])).join(", ")}) já votaram em todos os looks.</b>`
+            : JURADOS_ESPERADOS === 0 ? `<b style="color:#FFC107">⏳ Ninguém votou ainda.</b>`
+            : `<b style="color:#FFC107">⏳ Votação em andamento</b>: ${juradosOk.length} de ${JURADOS_ESPERADOS} jurados concluíram. Falta terminar: ${faltando.map(esc).join(", ")}. O ranking abaixo ainda pode mudar.`;
 
         const fmt = (n) => n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         const classes = ["p1", "p2", "p3"];

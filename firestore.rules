@@ -11,20 +11,9 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
     }
 
-    function ehFotografo() {
-      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && perfil().papel == 'fotografo';
-    }
-
-    function juri() {
-      return ['Gabriela Maria', 'Luciana Félix'];
-    }
-
-    // Só conta como jurado quem está na lista atual do júri.
-    function ehJurado() {
-      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && perfil().papel == 'jurado'
-        && perfil().nome in juri();
+    // Qualquer pessoa com conta criada pela página (ou o fotógrafo criado no console).
+    function ehMembro() {
+      return logado() && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
     }
 
     function notaValida(n) {
@@ -32,22 +21,23 @@ service cloud.firestore {
     }
 
     // Perfil do usuário. Cada conta só lê o próprio perfil.
-    // Criação pela página: só os nomes do júri, sempre com papel "jurado".
-    // Fotógrafo (Fernando) é criado direto no console do Firebase.
+    // Criação pela página: qualquer nome (1 a 40 letras), sempre com papel "jurado".
     match /usuarios/{uid} {
       allow read: if logado() && request.auth.uid == uid;
       allow create: if logado()
         && request.auth.uid == uid
         && request.resource.data.papel == 'jurado'
-        && request.resource.data.nome in juri()
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 40
         && request.resource.data.keys().hasOnly(['nome', 'papel', 'email']);
       allow update, delete: if false;
     }
 
-    // Inscrições dos looks: fotógrafo cria/remove, jurados leem.
+    // Looks: qualquer membro cadastra, vê e remove.
     match /participantes/{id} {
-      allow read: if ehFotografo() || ehJurado();
-      allow create: if ehFotografo()
+      allow read: if ehMembro();
+      allow create: if ehMembro()
         && request.resource.data.keys().hasOnly(['nome', 'foto', 'criadoPor', 'criadoEm'])
         && request.resource.data.nome is string
         && request.resource.data.nome.size() > 0
@@ -55,13 +45,13 @@ service cloud.firestore {
         && request.resource.data.foto.size() < 900000
         && request.resource.data.criadoPor == request.auth.uid;
       allow update: if false;
-      allow delete: if ehFotografo();
+      allow delete: if ehMembro();
     }
 
     // Notas: cada jurado só grava as próprias notas, de 0 a 5 por critério (-1 = ainda sem nota).
     match /votos/{id} {
-      allow read: if ehJurado();
-      allow create, update: if ehJurado()
+      allow read: if ehMembro();
+      allow create, update: if ehMembro()
         && id == request.auth.uid + '_' + request.resource.data.participanteId
         && request.resource.data.juradoUid == request.auth.uid
         && request.resource.data.juradoNome == perfil().nome
