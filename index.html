@@ -350,7 +350,8 @@
 
         {
             unsubs.push(onSnapshot(collection(db, "votos"), (snap) => {
-                votos = snap.docs.map(d => d.data());
+                // ignora votos de teste feitos na versão antiga da página (sem nome do jurado)
+                votos = snap.docs.map(d => d.data()).filter(v => v.juradoNome);
                 renderJulgamento();
                 renderResultado();
             }, (err) => console.error(err)));
