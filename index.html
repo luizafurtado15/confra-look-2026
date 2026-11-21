@@ -242,7 +242,8 @@
             await signInWithEmailAndPassword(auth, email, senha);
             $("loginSenha").value = "";
         } catch (e) {
-            alert("E-mail ou senha incorretos.");
+            if (e.code === "auth/too-many-requests") alert("Muitas tentativas. Espere 1 minuto e tente de novo.");
+            else alert("E-mail ou senha incorretos. Se ainda não tem conta, clique em \"Primeira vez? Criar conta\".");
         }
     };
 
@@ -269,14 +270,25 @@
         const senha = $("loginSenha").value;
         if (!nome) { alert("Digite seu nome."); return; }
         if (!email || senha.length < 6) { alert("Informe um e-mail e uma senha com pelo menos 6 caracteres."); return; }
+        nomePendente = nome; // o perfil é criado logo após o login (onAuthStateChanged)
         try {
-            const cred = await createUserWithEmailAndPassword(auth, email, senha);
-            await setDoc(doc(db, "usuarios", cred.user.uid), { nome, papel: "jurado", email });
+            await createUserWithEmailAndPassword(auth, email, senha);
             $("loginSenha").value = "";
         } catch (e) {
-            alert("Não foi possível criar a conta: " + e.message);
+            nomePendente = null;
+            if (e.code === "auth/email-already-in-use") {
+                alert("Esse e-mail já tem conta. Volte e clique em ENTRAR com a sua senha.");
+            } else if (e.code === "auth/invalid-email") {
+                alert("E-mail inválido. Confira se digitou certinho.");
+            } else if (e.code === "auth/weak-password") {
+                alert("A senha precisa ter pelo menos 6 caracteres.");
+            } else {
+                alert("Não foi possível criar a conta: " + (e.code || e.message));
+            }
         }
     }
+
+    let nomePendente = null;
 
     window.sair = async () => {
         await signOut(auth);
@@ -293,9 +305,21 @@
             $("quemSou").textContent = "";
             return;
         }
-        const snap = await getDoc(doc(db, "usuarios", user.uid));
-        if (!snap.exists()) {
-            alert("Esta conta não tem permissão para acessar a página. Fale com a organização.");
+        let snap;
+        try {
+            snap = await getDoc(doc(db, "usuarios", user.uid));
+            if (!snap.exists()) {
+                // conta nova, ou conta criada antes sem perfil: cria o perfil agora
+                let nome = nomePendente;
+                if (!nome) nome = (prompt("Digite seu nome para entrar na votação:") || "").trim().replace(/\s+/g, " ").slice(0, 40);
+                if (!nome) { await signOut(auth); return; }
+                await setDoc(doc(db, "usuarios", user.uid), { nome, papel: "jurado", email: user.email || "" });
+                nomePendente = null;
+                snap = await getDoc(doc(db, "usuarios", user.uid));
+            }
+        } catch (e) {
+            nomePendente = null;
+            alert("Não foi possível entrar (" + (e.code || e.message) + "). Avise a organização: as regras do Firebase podem não estar publicadas.");
             await signOut(auth);
             return;
         }
