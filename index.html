@@ -228,6 +228,7 @@
     let votos = [];          // { juradoUid, participanteId, scores }
     let fotoCapturada = null;
     let videoStream = null;
+    let carregando = false;
     let unsubs = [];
 
     const $ = (id) => document.getElementById(id);
@@ -341,7 +342,13 @@
         $("tab-resultado").hidden = false;
         mudarAba(ehFotografo ? "cadastro" : "votacao");
 
+        carregando = true;
+        $("avisoVotacao").textContent = "⏳ Carregando os looks e as suas notas... aguarde alguns segundos.";
+        $("avisoVotacao").classList.add("mostrar");
+        $("rankingContainer").innerHTML = "<p>⏳ Carregando o ranking...</p>";
         unsubs.push(onSnapshot(query(collection(db, "participantes"), orderBy("criadoEm")), (snap) => {
+            carregando = false;
+            $("avisoVotacao").textContent = "Nenhum look inscrito ainda.";
             participantes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             renderCadastro();
             renderJulgamento();
@@ -471,6 +478,7 @@
     function renderJulgamento() {
         if (!usuario) return;
         const lista = participantes.filter(p => p.nome.trim().toLowerCase() !== usuario.nome.trim().toLowerCase());
+        if (carregando) return;
         $("avisoVotacao").classList.toggle("mostrar", participantes.length === 0);
         const meus = meusVotos();
 
@@ -516,7 +524,7 @@
 
     // ---------- RESULTADO (júri) ----------
     function renderResultado() {
-        if (!usuario) return;
+        if (!usuario || carregando) return;
         if (!participantes.length) { $("progressoJuri").textContent = ""; $("rankingContainer").innerHTML = "<p>Nenhum look inscrito ainda.</p>"; return; }
 
         const completo = (v) => v && CRITERIOS.every(c => (v.scores?.[c.key] ?? NAO_VOTADO) >= 0);
